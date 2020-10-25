@@ -96,10 +96,12 @@ function sendPicture(data) {
  const datas = {
    method: "post",
    body: JSON.stringify(data),
-   headers: {'Content-Type':'application/json'}
+   headers: {'Content-Type':'application/json',
+            'Access-Control-Allow-Origin':'*'}
  };
- return fetch('http://localhost:5000', datas)
- .then(response=>response.json())
+ return fetch('http://localhost:5000/api/process_img', datas)
+ .then(response=>{return response.json()}).then((obj)=>{console.log(obj);
+  alert(`Your shoulder width is ${Math.round(obj.shoulderWidth)}cm and hip width is ${Math.round(obj.hipWidth)}cm`)})
 } 
 
 const drawCanvas = (pose,video, videoWidth, videoHeight, canvas) => {
@@ -159,8 +161,8 @@ function MyVerticallyCenteredModal(props) {
     <div className="App">
       <header className="App-header">
           <div>
-          {products.length>0 && products.map((el)=>{
-            return (<Card style={{margin: '10px'}}>
+          {products.length>0 && products.map((el,ind)=>{
+            return (<Card style={{margin: '10px'}} key={ind}>
                       <Card.Body>
                         <div style={{display: 'flex'}}>
                         <div style={{textAlign: 'left'}}>
