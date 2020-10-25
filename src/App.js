@@ -8,17 +8,17 @@ import Webcam from "react-webcam"
 import {Modal} from 'react-bootstrap'
 import { drawKeypoints, drawSkeleton } from './utilities'
 import{ Card, Button } from 'react-bootstrap'
-
+import {products} from './db'
 
 function App() {
 const webcamRef = useRef(null);
 const canvasRef = useRef(null);
 const [show, setShow] = useState(false);
-const [products, setProducts] = useState([]);
+//const [products, setProducts] = useState([]);
 const [screenshot, setScreenshot] = useState(null);
 
 useEffect(() => {
-  getProducts();
+ // getProducts();
 },[]);
 
 const runPosenet = async () => {
@@ -31,14 +31,14 @@ const runPosenet = async () => {
 
   setInterval(() => {
     detect(net, netHand)
-  }, 100);
+  }, 1000);
 }
 
- function getProducts() {
-   fetch('http://localhost:3001/products').then(res=>{
-     return res.json();
-   }).then(obj=>setProducts(obj))
- }
+//  function getProducts() {
+//    fetch('http://localhost:3001/products').then(res=>{
+//      return res.json();
+//    }).then(obj=>setProducts(obj))
+//  }
 
 const detect = async (net, netHand) => {
   if(typeof webcamRef.current!=="undefined" && webcamRef.current !== null && webcamRef.current.video.readyState===4) {
@@ -52,8 +52,8 @@ const detect = async (net, netHand) => {
     webcamRef.current.video.width = videoWidth;
     webcamRef.current.video.height = videoHeight;
 
-    canvasRef.current.width = videoWidth
-    canvasRef.current.height = videoHeight
+   // canvasRef.current.width = videoWidth
+   // canvasRef.current.height = videoHeight
 
     // Make Detections
     //console.log(pose);

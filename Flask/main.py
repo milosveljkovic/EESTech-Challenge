@@ -9,6 +9,8 @@ app = Flask(__name__)
 @app.route('/api/process_img', methods=['POST'])
 def process_img():
     data = request.json
+    print(data)
+    return
     img = data['ImgSrc']
     left_shoulder = data['leftShoulder']
     right_shoulder = data['rightShoulder']
