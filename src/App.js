@@ -1,6 +1,5 @@
-import logo from './logo.svg';
 import './App.css';
-import React, {useRef, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import "./App.css";
 import * as tf from "@tensorflow/tfjs";
 import * as posenet from "@tensorflow-models/posenet";
@@ -10,13 +9,17 @@ import {Modal} from 'react-bootstrap'
 import { drawKeypoints, drawSkeleton } from './utilities'
 import{ Card, Button } from 'react-bootstrap'
 
-let niz = [1,2,3,4,5,6,7,1,2,3,4,5,6,7];
 
 function App() {
 const webcamRef = useRef(null);
 const canvasRef = useRef(null);
 const [show, setShow] = useState(false);
+const [products, setProducts] = useState([]);
 const [screenshot, setScreenshot] = useState(null);
+
+useEffect(() => {
+  getProducts();
+},[]);
 
 const runPosenet = async () => {
   const net = await posenet.load({
@@ -25,12 +28,17 @@ const runPosenet = async () => {
   });
 
   const netHand = await handpose.load();
-  console.log('Hand pose');
 
   setInterval(() => {
     detect(net, netHand)
-  }, 1000);
+  }, 100);
 }
+
+ function getProducts() {
+   fetch('http://localhost:3001/products').then(res=>{
+     return res.json();
+   }).then(obj=>setProducts(obj))
+ }
 
 const detect = async (net, netHand) => {
   if(typeof webcamRef.current!=="undefined" && webcamRef.current !== null && webcamRef.current.video.readyState===4) {
@@ -48,8 +56,8 @@ const detect = async (net, netHand) => {
     canvasRef.current.height = videoHeight
 
     // Make Detections
-    const pose = await net.estimateSinglePose(video);
     //console.log(pose);
+    const pose = await net.estimateSinglePose(video);
 
     const hand = await netHand.estimateHands(video);
     console.log(hand);
@@ -71,18 +79,28 @@ const detect = async (net, netHand) => {
         }
       })
       if(hand[0].landmarks[4][1]<=min){
-        takeScreenshot()
+        takeScreenshot(pose);
         console.log(pose);
         setShow(false);
       }
       if(hand[0].landmarks[4][1]>=max){
-        alert("THUMBS DOWN");
+        alert("DOWN");
       }
     }
 
     //drawCanvas(pose, video, videoWidth, videoHeight, canvasRef);
   }
 }
+
+function sendPicture(data) {
+ const datas = {
+   method: "post",
+   body: JSON.stringify(data),
+   headers: {'Content-Type':'application/json'}
+ };
+ return fetch('http://localhost:5000', datas)
+ .then(response=>response.json())
+} 
 
 const drawCanvas = (pose,video, videoWidth, videoHeight, canvas) => {
   const ctx = canvas.current.getContext("2d");
@@ -95,14 +113,26 @@ const drawCanvas = (pose,video, videoWidth, videoHeight, canvas) => {
 
 runPosenet();
 
-const takeScreenshot=() =>{
-  var screenshot = webcamRef.current.getScreenshot();
-  //let dec =URL.createObjectURL(new Blob([screenshot] , {type:'text/plain'}));
-  var image = new Image();
-  image.src = screenshot;
-  console.log(screenshot);
-  document.body.appendChild(image);
-  setScreenshot({screenshot: screenshot});
+const takeScreenshot=(pose) =>{
+  if(webcamRef!==null){
+    const screenshot = webcamRef.current.getScreenshot();
+    console.log(pose)
+    let obj = {
+      ImgSrc : screenshot,
+      leftShoulder: pose.keypoints[5],
+      rightShoulder: pose.keypoints[6],
+      leftHip: pose.keypoints[11],
+      rightHip: pose.keypoints[12],
+    }
+    
+    sendPicture(obj);
+    //console.log(obj);
+    //var image = new Image();
+    //image.src = screenshot;
+    //console.log(screenshot);
+    //document.body.appendChild(image)
+    setScreenshot({screenshot: screenshot});
+  }
 }
 
 function MyVerticallyCenteredModal(props) {
@@ -116,10 +146,10 @@ function MyVerticallyCenteredModal(props) {
     >
       <Modal.Body  style={{width:"640px",height:"490px"}}>
           <Webcam ref={webcamRef} className='webcamStyle' screenshotFormat="image/jpeg"/>
-          <canvas ref={canvasRef} className='webcamStyle' screenshotFormat="image/jpeg"/>
+          <canvas ref={canvasRef} className='webcamStyle'/>
       </Modal.Body>
       <Modal.Footer>
-        <button onClick={()=>setShow(false)}>Close</button>
+        <button className="btn btn-danger" onClick={()=>setShow(false)}>Close</button>
       </Modal.Footer>
     </Modal>
   );
@@ -129,20 +159,35 @@ function MyVerticallyCenteredModal(props) {
     <div className="App">
       <header className="App-header">
           <div>
-          {niz.map((el)=>{
-            return (<Card style={{width: '250px'}}>
+          {products.length>0 && products.map((el)=>{
+            return (<Card style={{margin: '10px'}}>
                       <Card.Body>
-                        <Card.Title>{el}</Card.Title>
+                        <div style={{display: 'flex'}}>
+                        <div style={{textAlign: 'left'}}>
                         <Card.Text style={{color:'black'}}>
-                          Description
+                        Name: {el.name}
                         </Card.Text>
-                        <Button variant="primary" onClick={()=>setShow(true)}>Open camera</Button>
+                        <Card.Text style={{color:'black'}}>
+                        Brand: {el.brand} 
+                        </Card.Text>
+                        <Card.Text style={{color:'black'}}>
+                        Price: {el.price} $
+                        </Card.Text>
+                        <Card.Text style={{color:'black'}}>
+                        Category: {el.category}
+                        </Card.Text>
+                        <Button variant="primary" onClick={()=>setShow(true)}  style={{margin:'20px 0px 0px 0px'}}>Open camera</Button>
+                        </div>
+                        <div>
+                        <img src={el.image} style={{width: '320px'}}/>
+                        </div>
+                        </div>
                       </Card.Body>
                     </Card>
               )
           })
           }
-         {screenshot && <img src={`${screenshot}`} alt="Red dot" /> }
+         {/* {screenshot && <img src={`${screenshot}`} alt="Red dot" /> } */}
           </div>
         <MyVerticallyCenteredModal/>
       </header>
